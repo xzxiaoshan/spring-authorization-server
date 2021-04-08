@@ -25,29 +25,32 @@ public class JdbcRegisteredClientRepository extends JdbcDaoSupport implements Re
 	private static final Map<String, AuthorizationGrantType> AUTHORIZATION_GRANT_TYPE_MAP;
 	private static final Map<String, ClientAuthenticationMethod> CLIENT_AUTHENTICATION_METHOD_MAP;
 
-	public static final String DEF_CLIENTS_BY_ID_QUERY = "select * from clients where client_id = ? and enabled = true";
+	public static final String DEF_CLIENTS_BY_ID_QUERY = "select * from oauth2_registered_client where client_id = ? and enabled = true";
 
 	private static final String DEF_COLL_SEPARATOR = "\\|";
 
 	private String clientsByIdQuery;
+	private String clientsByClientIdQuery;
 	private String collSeparator;
 
 	private RowMapper<RegisteredClient> registeredClientRowMapper;
 
 	public JdbcRegisteredClientRepository() {
 		this.clientsByIdQuery = DEF_CLIENTS_BY_ID_QUERY;
+		this.clientsByClientIdQuery = DEF_CLIENTS_BY_ID_QUERY;
 		this.collSeparator = DEF_COLL_SEPARATOR;
 		this.registeredClientRowMapper = this::defaultRegisteredClientRowMapper;
 	}
 
 	@Override
 	public RegisteredClient findById(String id) {
-		return findByClientId(id);
+		List<RegisteredClient> lst = getJdbcTemplate().query(clientsByIdQuery, registeredClientRowMapper, id);
+		return lst.size() == 1 ? lst.get(0) : null;
 	}
 
 	@Override
 	public RegisteredClient findByClientId(String clientId) {
-		List<RegisteredClient> lst = getJdbcTemplate().query(clientsByIdQuery, registeredClientRowMapper, clientId);
+		List<RegisteredClient> lst = getJdbcTemplate().query(clientsByClientIdQuery, registeredClientRowMapper, clientId);
 		return lst.size() == 1 ? lst.get(0) : null;
 	}
 
@@ -74,9 +77,9 @@ public class JdbcRegisteredClientRepository extends JdbcDaoSupport implements Re
 		RegisteredClient rc = builder.build();
 
 		TokenSettings ts = rc.getTokenSettings();
-		ts.accessTokenTimeToLive(Duration.ofMillis(rs.getLong("atoken_ttl")));
-		ts.refreshTokenTimeToLive(Duration.ofMillis(rs.getLong("rtoken_ttl")));
-		ts.reuseRefreshTokens(rs.getBoolean("rtoken_reuse"));
+		ts.accessTokenTimeToLive(Duration.ofMillis(rs.getLong("access_token_ttl")));
+		ts.refreshTokenTimeToLive(Duration.ofMillis(rs.getLong("refresh_token_ttl")));
+		ts.reuseRefreshTokens(rs.getBoolean("refresh_token_reuse"));
 
 		ClientSettings cs = rc.getClientSettings();
 		cs.requireProofKey(rs.getBoolean("require_pkce"));
@@ -86,13 +89,23 @@ public class JdbcRegisteredClientRepository extends JdbcDaoSupport implements Re
 	}
 
 	/**
-	 * Allows default query string for finding client to be overridden.
+	 * Allows default query string for finding client by internal ID to be overridden.
 	 *
 	 * @param clientsByIdQuery SQL query string to set
 	 */
 	public void setClientsByIdQuery(String clientsByIdQuery) {
 		Assert.hasText(clientsByIdQuery, "clientsByIdQuery cannot be null nor empty");
 		this.clientsByIdQuery = clientsByIdQuery;
+	}
+
+	/**
+	 * Allows default query string for finding client by internal ID to be overridden.
+	 *
+	 * @param clientsByClientIdQuery SQL query string to set
+	 */
+	public void setClientsByClientIdQuery(String clientsByClientIdQuery) {
+		Assert.hasText(clientsByClientIdQuery, "clientsByClientIdQuery cannot be null nor empty");
+		this.clientsByClientIdQuery = clientsByClientIdQuery;
 	}
 
 	/**
@@ -117,7 +130,8 @@ public class JdbcRegisteredClientRepository extends JdbcDaoSupport implements Re
 				AuthorizationGrantType.REFRESH_TOKEN,
 				AuthorizationGrantType.CLIENT_CREDENTIALS,
 				AuthorizationGrantType.PASSWORD,
-				AuthorizationGrantType.IMPLICIT)) {
+				AuthorizationGrantType.IMPLICIT
+		)) {
 			am.put(a.getValue(), a);
 		}
 		AUTHORIZATION_GRANT_TYPE_MAP = Collections.unmodifiableMap(am);

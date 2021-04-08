@@ -26,7 +26,7 @@ import static org.assertj.core.api.Assertions.*;
 public class JdbcRegisteredClientRepositoryTests {
 
 	private final String ROOT = "/org/springframework/security/oauth2/server/authorization/client/";
-	private final List<String> SCRIPTS = Arrays.asList("clients.ddl", "clients_testdata.sql");
+	private final List<String> SCRIPTS = Arrays.asList("oauth2_registered_client.ddl", "clients_testdata.sql");
 
 	private DriverManagerDataSource dataSource;
 	private JdbcRegisteredClientRepository repository;
