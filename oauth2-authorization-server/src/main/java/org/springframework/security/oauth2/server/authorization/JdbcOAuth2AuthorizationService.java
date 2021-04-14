@@ -1,9 +1,13 @@
 package org.springframework.security.oauth2.server.authorization;
 
 
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.*;
+import org.springframework.jdbc.core.support.AbstractLobCreatingPreparedStatementCallback;
+import org.springframework.jdbc.support.lob.DefaultLobHandler;
+import org.springframework.jdbc.support.lob.LobCreator;
 import org.springframework.security.oauth2.core.*;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
 import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
@@ -132,15 +136,53 @@ public class JdbcOAuth2AuthorizationService implements OAuth2AuthorizationServic
 		SqlParameterValue principalNameParameter = parameters.remove(0);
 		parameters.add(clientRegistrationIdParameter);
 		parameters.add(principalNameParameter);
-		PreparedStatementSetter pss = new ArgumentPreparedStatementSetter(parameters.toArray());
-		this.jdbcOperations.update(UPDATE_AUTHORIZED_CLIENT_SQL, pss);
+		DefaultLobHandler defaultLobHandler = new DefaultLobHandler();
+		jdbcOperations.execute(UPDATE_AUTHORIZED_CLIENT_SQL, new AbstractLobCreatingPreparedStatementCallback(defaultLobHandler) {
+			@Override
+			protected void setValues(PreparedStatement ps, LobCreator lobCreator) throws SQLException, DataAccessException {
+				ps.setString(1, (String) parameters.get(0).getValue());
+				ps.setString(2, (String) parameters.get(1).getValue());
+				ps.setTimestamp(3, (Timestamp) parameters.get(2).getValue());
+				ps.setTimestamp(4, (Timestamp) parameters.get(3).getValue());
+				ps.setString(5, (String) parameters.get(4).getValue());
+				lobCreator.setBlobAsBytes(ps, 6, (byte[]) parameters.get(5).getValue());
+				ps.setTimestamp(7, (Timestamp) parameters.get(6).getValue());
+				ps.setTimestamp(8, (Timestamp) parameters.get(7).getValue());
+				ps.setString(9, (String) parameters.get(8).getValue());
+				lobCreator.setBlobAsBytes(ps, 10, (byte[]) parameters.get(9).getValue());
+				ps.setTimestamp(11, (Timestamp) parameters.get(10).getValue());
+				ps.setTimestamp(12, (Timestamp) parameters.get(11).getValue());
+				lobCreator.setBlobAsBytes(ps, 13, (byte[]) parameters.get(12).getValue());
+				ps.setString(14, (String) parameters.get(13).getValue());
+				ps.setString(15, (String) parameters.get(14).getValue());
+			}
+		});
 	}
 
 	private void insertAuthorization(OAuth2Authorization oAuth2Authorization) {
 		List<SqlParameterValue> parameters = this.authorizedClientParametersMapper
 				.apply(new OAuth2AuthorizationHolder(oAuth2Authorization));
-		PreparedStatementSetter pss = new ArgumentPreparedStatementSetter(parameters.toArray());
-		this.jdbcOperations.update(SAVE_AUTHORIZED_CLIENT_SQL, pss);
+		DefaultLobHandler defaultLobHandler = new DefaultLobHandler();
+		jdbcOperations.execute(SAVE_AUTHORIZED_CLIENT_SQL, new AbstractLobCreatingPreparedStatementCallback(defaultLobHandler) {
+			@Override
+			protected void setValues(PreparedStatement ps, LobCreator lobCreator) throws SQLException, DataAccessException {
+				ps.setString(1, (String) parameters.get(0).getValue());
+				ps.setString(2, (String) parameters.get(1).getValue());
+				ps.setString(3, (String) parameters.get(2).getValue());
+				ps.setString(4, (String) parameters.get(3).getValue());
+				ps.setTimestamp(5, (Timestamp) parameters.get(4).getValue());
+				ps.setTimestamp(6, (Timestamp) parameters.get(5).getValue());
+				ps.setString(7, (String) parameters.get(6).getValue());
+				lobCreator.setBlobAsBytes(ps, 8, (byte[]) parameters.get(7).getValue());
+				ps.setTimestamp(9, (Timestamp) parameters.get(8).getValue());
+				ps.setTimestamp(10, (Timestamp) parameters.get(9).getValue());
+				ps.setString(11, (String) parameters.get(10).getValue());
+				lobCreator.setBlobAsBytes(ps, 12, (byte[]) parameters.get(11).getValue());
+				ps.setTimestamp(13, (Timestamp) parameters.get(12).getValue());
+				ps.setTimestamp(14, (Timestamp) parameters.get(13).getValue());
+				lobCreator.setBlobAsBytes(ps, 15, (byte[]) parameters.get(14).getValue());
+			}
+		});
 	}
 
 	@Override
